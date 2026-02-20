@@ -1,0 +1,348 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ═══════════════════════════════════════
+// AUTH (NextAuth.js required models)
+// ═══════════════════════════════════════
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ═══════════════════════════════════════
+// USERS & ORGANISATIONS
+// ═══════════════════════════════════════
+
+model User {
+  id                  String         @id @default(cuid())
+  name                String?
+  email               String?        @unique
+  emailVerified       DateTime?
+  image               String?
+  hashedPassword      String?
+  role                Role           @default(INDIVIDUAL)
+  budgetPeriod        BudgetPeriod   @default(FORTNIGHTLY)
+  isActive            Boolean        @default(true)
+  onboardingCompleted Boolean        @default(false)
+  organisationId      String?
+  organisation        Organisation?  @relation("OrgMembers", fields: [organisationId], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  accounts            Account[]
+  sessions            Session[]
+  transactions        Transaction[]
+  budgetItems         BudgetItem[]
+  goals               Goal[]
+  csvUploads          CsvUpload[]
+  ownedOrganisation   Organisation?  @relation("OrgOwner")
+  sentInvites         ClientInvite[] @relation("InviteSender")
+  mappingRules        MappingRule[]  @relation("RuleCreator")
+}
+
+enum Role {
+  OWNER
+  ADVISER
+  INDIVIDUAL
+  CLIENT
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+}
+
+model Organisation {
+  id                   String             @id @default(cuid())
+  name                 String
+  logoUrl              String?
+  ownerId              String             @unique
+  owner                User               @relation("OrgOwner", fields: [ownerId], references: [id])
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  planId               String?
+  plan                 SubscriptionPlan?  @relation(fields: [planId], references: [id])
+  planStatus           PlanStatus         @default(TRIALING)
+  trialEndsAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  members              User[]             @relation("OrgMembers")
+  invites              ClientInvite[]
+  mappingRules         MappingRule[]      @relation("OrgRules")
+}
+
+enum PlanStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  INACTIVE
+}
+
+// ═══════════════════════════════════════
+// SUBSCRIPTIONS & FEATURE GATES
+// ═══════════════════════════════════════
+
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  stripePriceId String?        @unique
+  priceCents    Int            @default(0)
+  interval      PlanInterval   @default(MONTH)
+  maxClients    Int?
+  isActive      Boolean        @default(true)
+  features      PlanFeature[]
+  organisations Organisation[]
+  createdAt     DateTime       @default(now())
+}
+
+enum PlanInterval {
+  MONTH
+  YEAR
+}
+
+model FeatureGate {
+  id             String        @id @default(cuid())
+  key            String        @unique
+  name           String
+  description    String?
+  defaultEnabled Boolean       @default(false)
+  plans          PlanFeature[]
+}
+
+model PlanFeature {
+  id        String           @id @default(cuid())
+  planId    String
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureId String
+  feature   FeatureGate      @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+}
+
+// ═══════════════════════════════════════
+// CATEGORISATION
+// ═══════════════════════════════════════
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  group        CategoryGroup
+  isSystem     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+  mappingRules MappingRule[]
+}
+
+enum CategoryGroup {
+  INCOME
+  BILLS
+  LIVING_COSTS
+  DISCRETIONARY
+  OTHER
+}
+
+model MappingRule {
+  id             String        @id @default(cuid())
+  lookupText     String
+  displayName    String
+  categoryId     String
+  category       Category      @relation(fields: [categoryId], references: [id])
+  priority       Int
+  source         MappingSource @default(SYSTEM)
+  organisationId String?
+  organisation   Organisation? @relation("OrgRules", fields: [organisationId], references: [id])
+  userId         String?
+  user           User?         @relation("RuleCreator", fields: [userId], references: [id])
+  createdAt      DateTime      @default(now())
+
+  @@index([priority, lookupText])
+  @@index([organisationId])
+  @@index([userId])
+}
+
+enum MappingSource {
+  SYSTEM
+  AI_LEARNED
+  ADVISER
+  USER
+}
+
+// ═══════════════════════════════════════
+// TRANSACTIONS & BUDGETS
+// ═══════════════════════════════════════
+
+model CsvUpload {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename         String
+  bankFormat       String        @default("generic")
+  transactionCount Int           @default(0)
+  storagePath      String?
+  uploadedAt       DateTime      @default(now())
+  transactions     Transaction[]
+}
+
+model Transaction {
+  id                   String                @id @default(cuid())
+  userId               String
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                 DateTime              @db.Date
+  rawDescription       String
+  cleanedDescription   String?
+  amount               Decimal               @db.Decimal(12, 2)
+  type                 TransactionType
+  categoryId           String?
+  category             Category?             @relation(fields: [categoryId], references: [id])
+  categorisationMethod CategorisationMethod?
+  csvUploadId          String?
+  csvUpload            CsvUpload?            @relation(fields: [csvUploadId], references: [id])
+  hash                 String?
+  createdAt            DateTime              @default(now())
+
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([hash])
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum CategorisationMethod {
+  EXACT_MERCHANT
+  KEYWORD
+  EDGE_CASE
+  AI
+  MANUAL
+}
+
+model BudgetItem {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section   BudgetSection
+  label     String
+  amount    Decimal       @db.Decimal(12, 2) @default(0)
+  frequency Frequency
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([userId, section])
+}
+
+enum BudgetSection {
+  INCOME
+  FIXED_COMMITMENTS
+  LIVING_COSTS
+  ONE_OFF_COSTS
+  COMMITTED_EXTRA
+}
+
+enum Frequency {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+model Goal {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          GoalType
+  targetAmount  Decimal   @db.Decimal(12, 2)
+  currentAmount Decimal   @db.Decimal(12, 2) @default(0)
+  targetDate    DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+}
+
+enum GoalType {
+  EMERGENCY_FUND
+  MORTGAGE_OVERPAYMENT
+  CUSTOM
+}
+
+model ClientInvite {
+  id             String       @id @default(cuid())
+  email          String
+  token          String       @unique @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  invitedBy      String
+  inviter        User         @relation("InviteSender", fields: [invitedBy], references: [id])
+  status         InviteStatus @default(PENDING)
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+// ═══════════════════════════════════════
+// CSV FORMAT CACHE (AI-detected bank formats)
+// ═══════════════════════════════════════
+
+model BankFormatCache {
+  id            String   @id @default(cuid())
+  headerHash    String   @unique
+  bankName      String?
+  columnMapping Json
+  currency      String   @default("NZD")
+  usageCount    Int      @default(1)
+  lastUsedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
