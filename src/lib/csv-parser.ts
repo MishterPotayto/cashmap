@@ -99,14 +99,14 @@ export async function cacheMapping(
   await prisma.bankFormatCache.upsert({
     where: { headerHash },
     update: {
-      columnMapping: mapping as unknown as Record<string, unknown>,
+      columnMapping: JSON.parse(JSON.stringify(mapping)),
       usageCount: { increment: 1 },
       lastUsedAt: new Date(),
     },
     create: {
       headerHash,
       bankName: mapping.bankName,
-      columnMapping: mapping as unknown as Record<string, unknown>,
+      columnMapping: JSON.parse(JSON.stringify(mapping)),
       currency: mapping.currency ?? "NZD",
     },
   });
