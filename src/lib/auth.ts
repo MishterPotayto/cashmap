@@ -17,6 +17,7 @@ declare module "next-auth" {
       organisationId: string | null;
       budgetPeriod: BudgetPeriod;
       onboardingCompleted: boolean;
+      emailVerified: Date | null;
     };
   }
 
@@ -25,6 +26,7 @@ declare module "next-auth" {
     organisationId?: string | null;
     budgetPeriod?: BudgetPeriod;
     onboardingCompleted?: boolean;
+    emailVerified?: Date | null;
   }
 }
 
@@ -34,6 +36,7 @@ declare module "next-auth" {
     organisationId?: string | null;
     budgetPeriod?: BudgetPeriod;
     onboardingCompleted?: boolean;
+    emailVerified?: Date | string | null;
   }
 }
 
@@ -92,13 +95,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google" && user.email) {
-        // Check if owner
+        // Auto-verify Google users and check owner role
+        const updates: Record<string, unknown> = { emailVerified: new Date() };
         if (ownerEmails.includes(user.email.toLowerCase())) {
-          await prisma.user.updateMany({
-            where: { email: user.email },
-            data: { role: "OWNER" },
-          });
+          updates.role = "OWNER";
         }
+        await prisma.user.updateMany({
+          where: { email: user.email },
+          data: updates,
+        });
       }
       return true;
     },
@@ -114,6 +119,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.organisationId = dbUser.organisationId;
           token.budgetPeriod = dbUser.budgetPeriod;
           token.onboardingCompleted = dbUser.onboardingCompleted;
+          token.emailVerified = dbUser.emailVerified;
         }
       }
 
@@ -138,6 +144,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           (token.budgetPeriod as BudgetPeriod) ?? "FORTNIGHTLY";
         session.user.onboardingCompleted =
           (token.onboardingCompleted as boolean) ?? false;
+        session.user.emailVerified =
+          token.emailVerified ? new Date(token.emailVerified as string) : null;
       }
       return session;
     },
