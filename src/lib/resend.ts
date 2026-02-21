@@ -3,7 +3,11 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
 const from = process.env.RESEND_FROM_EMAIL ?? "noreply@updates.cashmapnz.com";
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+  "https://cashmapnz.com";
 
 export async function sendVerificationEmail({
   to,
