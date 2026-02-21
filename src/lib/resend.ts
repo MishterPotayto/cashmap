@@ -21,6 +21,7 @@ export async function sendVerificationEmail({
     from: `CashMap <${from}>`,
     to,
     subject: "Verify your CashMap email",
+    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Verify your email</h2>
@@ -50,6 +51,7 @@ export async function sendClientInviteEmail({
     from: `CashMap <${from}>`,
     to,
     subject: `You've been invited to CashMap by ${adviserName}`,
+    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">You're invited to CashMap</h2>
@@ -70,6 +72,7 @@ export async function sendWelcomeEmail({ to, name }: { to: string; name: string 
     from: `CashMap <${from}>`,
     to,
     subject: "Welcome to CashMap!",
+    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Welcome to CashMap, ${name}!</h2>
@@ -94,6 +97,7 @@ export async function sendProConfirmationEmail({ to, name }: { to: string; name:
     from: `CashMap <${from}>`,
     to,
     subject: "CashMap Pro — you're all set!",
+    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Welcome to CashMap Pro, ${name}!</h2>

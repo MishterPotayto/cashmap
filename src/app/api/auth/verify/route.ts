@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { signIn } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -31,10 +33,26 @@ export async function GET(req: Request) {
     data: { emailVerified: new Date() },
   });
 
-  // Delete the token
+  // Consume the verification token
   await prisma.verificationToken.delete({
     where: { identifier_token: { identifier: verificationToken.identifier, token } },
   });
 
-  return NextResponse.redirect(new URL("/login?verified=true", req.url));
+  // Create a short-lived one-time login token (5 minutes)
+  const loginToken = crypto.randomBytes(32).toString("hex");
+  const loginExpires = new Date(Date.now() + 5 * 60 * 1000);
+  await prisma.verificationToken.create({
+    data: {
+      identifier: verificationToken.identifier,
+      token: loginToken,
+      expires: loginExpires,
+    },
+  });
+
+  // Auto sign-in the user and send them to onboarding
+  return signIn("credentials", {
+    email: verificationToken.identifier,
+    loginToken,
+    redirectTo: "/onboarding",
+  });
 }
