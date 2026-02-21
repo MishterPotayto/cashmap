@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     }
 
   // Password strength (strict)
-  const pwError = validatePasswordStrong(password, { email: cleanEmail, name: cleanName }) ?? validatePassword(password, { email: cleanEmail, name: cleanName });
+const pwError = validatePasswordStrong(password, { email: cleanEmail, name: cleanName }) ?? validatePassword(password);
   if (pwError) {
     return NextResponse.json({ error: pwError }, { status: 400 });
   }
