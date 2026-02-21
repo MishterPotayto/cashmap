@@ -25,7 +25,9 @@ function isRateLimited(ip: string): boolean {
   return record.count > RATE_LIMIT;
 }
 
-function validatePassword(password: string): string | null {
+import { validatePasswordStrong } from "@/lib/security";
+
+function validatePassword(password: string, context?: { email?: string; name?: string }): string | null {
   if (password.length < 8) return "Password must be at least 8 characters";
   if (!/[A-Z]/.test(password)) return "Password must contain an uppercase letter";
   if (!/[a-z]/.test(password)) return "Password must contain a lowercase letter";
@@ -70,11 +72,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Password strength
-    const pwError = validatePassword(password);
-    if (pwError) {
-      return NextResponse.json({ error: pwError }, { status: 400 });
-    }
+  // Password strength (strict)
+  const pwError = validatePasswordStrong(password, { email: cleanEmail, name: cleanName }) ?? validatePassword(password, { email: cleanEmail, name: cleanName });
+  if (pwError) {
+    return NextResponse.json({ error: pwError }, { status: 400 });
+  }
 
     // Check existing user — generic error to prevent email enumeration
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });

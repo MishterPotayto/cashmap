@@ -20,10 +20,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing file or mapping" }, { status: 400 });
   }
 
+  // Basic file validation
+  if ((file as any).size && (file as any).size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 413 });
+  }
+
   const mapping: ColumnMapping = JSON.parse(mappingStr);
   const text = await file.text();
   const parsed = Papa.parse(text, { skipEmptyLines: true });
   const rows = parsed.data as string[][];
+  if (rows.length > 10001) {
+    return NextResponse.json({ error: "CSV has more than 10,000 rows" }, { status: 413 });
+  }
   const headers = rows[0];
   const dataRows = rows.slice(1);
 

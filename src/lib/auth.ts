@@ -5,6 +5,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role, BudgetPeriod } from "@/generated/prisma";
+import { isLoginBlocked, recordLoginFailure, recordLoginSuccess } from "@/lib/security";
+import { headers } from "next/headers";
 
 declare module "next-auth" {
   interface Session {
@@ -65,6 +67,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        const hdr = headers();
+        const ip = (hdr.get("x-forwarded-for") || hdr.get("x-real-ip") || "unknown").split(",")[0].trim();
+        const emailKey = (credentials?.email as string | undefined)?.toLowerCase() || "unknown";
+        const rlKey = `${ip}|${emailKey}`;
+        const block = isLoginBlocked(rlKey);
+        if (block.blocked) {
+          // pretend invalid creds for privacy
+          await new Promise((r) => setTimeout(r, 300));
+          return null;
+        }
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
@@ -78,12 +90,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.hashedPassword
         );
 
-        if (!isValid) return null;
+        if (!isValid) {
+          recordLoginFailure(rlKey);
+          return null;
+        }
 
         // Block sign-in until email is verified
         if (!user.emailVerified) {
+          recordLoginFailure(rlKey);
           return null;
         }
+
+        recordLoginSuccess(rlKey);
 
         return {
           id: user.id,
