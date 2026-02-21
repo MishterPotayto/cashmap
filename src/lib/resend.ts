@@ -20,8 +20,8 @@ export async function sendVerificationEmail({
   return resend.emails.send({
     from: `CashMap <${from}>`,
     to,
-    subject: "Verify your CashMap email",
-    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
+subject: "Verify your CashMap email",
+    replyTo: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Verify your email</h2>
@@ -50,8 +50,8 @@ export async function sendClientInviteEmail({
   return resend.emails.send({
     from: `CashMap <${from}>`,
     to,
-    subject: `You've been invited to CashMap by ${adviserName}`,
-    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
+subject: `You've been invited to CashMap by ${adviserName}`,
+    replyTo: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">You're invited to CashMap</h2>
@@ -71,8 +71,8 @@ export async function sendWelcomeEmail({ to, name }: { to: string; name: string 
   return resend.emails.send({
     from: `CashMap <${from}>`,
     to,
-    subject: "Welcome to CashMap!",
-    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
+subject: "Welcome to CashMap!",
+    replyTo: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Welcome to CashMap, ${name}!</h2>
@@ -96,8 +96,8 @@ export async function sendProConfirmationEmail({ to, name }: { to: string; name:
   return resend.emails.send({
     from: `CashMap <${from}>`,
     to,
-    subject: "CashMap Pro — you're all set!",
-    reply_to: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
+subject: "CashMap Pro — you're all set!",
+    replyTo: process.env.RESEND_REPLY_TO || "support@cashmapnz.com",
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a56db;">Welcome to CashMap Pro, ${name}!</h2>
