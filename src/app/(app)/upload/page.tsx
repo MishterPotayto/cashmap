@@ -18,7 +18,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [step, setStep] = useState<"upload" | "detecting" | "confirm" | "processing" | "done">("upload");
   const [detection, setDetection] = useState<DetectionResult | null>(null);
-  const [result, setResult] = useState<{ imported: number; categorised: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; categorised: number; uploadId?: string } | null>(null);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
