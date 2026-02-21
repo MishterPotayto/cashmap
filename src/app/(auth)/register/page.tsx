@@ -49,19 +49,8 @@ function RegisterForm() {
         return;
       }
 
-      // Auto sign in
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Account created but sign-in failed. Try signing in.");
-        setLoading(false);
-      } else {
-        router.push("/onboarding");
-      }
+      // Do NOT auto sign in — require email verification first
+      router.push("/verify-email");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
