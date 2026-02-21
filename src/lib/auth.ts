@@ -100,16 +100,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google" && user.email) {
-        // Auto-verify Google users and check owner role
-        const updates: Record<string, unknown> = { emailVerified: new Date() };
+      if (user?.email) {
+        // If signing in with Google, also mark verified
+        const updates: Record<string, unknown> = {};
+        if (account?.provider === "google") {
+          updates.emailVerified = new Date();
+        }
         if (ownerEmails.includes(user.email.toLowerCase())) {
           updates.role = "OWNER";
         }
-        await prisma.user.updateMany({
-          where: { email: user.email },
-          data: updates,
-        });
+        if (Object.keys(updates).length > 0) {
+          await prisma.user.updateMany({ where: { email: user.email }, data: updates });
+        }
       }
       return true;
     },

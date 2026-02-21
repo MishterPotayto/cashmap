@@ -4,6 +4,11 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/resend";
 
+const ownerEmails = (process.env.OWNER_EMAILS ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
 // Simple in-memory rate limiting
 const attempts = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5; // max attempts
@@ -88,7 +93,7 @@ export async function POST(req: Request) {
         name: cleanName,
         email: cleanEmail,
         hashedPassword,
-        role: "INDIVIDUAL",
+        role: ownerEmails.includes(cleanEmail) ? "OWNER" : "INDIVIDUAL",
         onboardingCompleted: false,
         emailVerified: null,
       },

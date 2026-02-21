@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const ownerEmails = (process.env.OWNER_EMAILS ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
@@ -28,7 +33,10 @@ export async function GET(req: Request) {
   // Mark user as verified
   await prisma.user.updateMany({
     where: { email: verificationToken.identifier },
-    data: { emailVerified: new Date() },
+    data: {
+      emailVerified: new Date(),
+      role: ownerEmails.includes(verificationToken.identifier.toLowerCase()) ? "OWNER" : undefined,
+    },
   });
 
   // Consume the verification token
