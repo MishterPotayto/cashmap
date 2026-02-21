@@ -1,23 +1,35 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { DollarSign, Mail, RefreshCw } from "lucide-react";
 
 export default function VerifyEmailPage() {
   const { data: session } = useSession();
+  const params = useSearchParams();
+  const [email, setEmail] = useState<string>("");
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+
+  useEffect(() => {
+    const paramEmail = params.get("email");
+    const sessionEmail = session?.user?.email ?? null;
+    setEmail(sessionEmail ?? paramEmail ?? "");
+  }, [params, session]);
 
   async function handleResend() {
     setResending(true);
     try {
+      if (!email) return;
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: session?.user?.email }),
+        body: JSON.stringify({ email }),
       });
       if (res.ok) setResent(true);
     } catch {
@@ -42,13 +54,27 @@ export default function VerifyEmailPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-sm text-gray-600">
-            We sent a verification link to{" "}
-            <strong>{session?.user?.email ?? "your email"}</strong>.
+            We sent a verification link to {" "}
+            <strong>{email || "your email"}</strong>.
             Click the link in the email to verify your account.
           </p>
           <p className="text-xs text-gray-500">
             The link expires in 24 hours. Check your spam folder if you don&apos;t see it.
           </p>
+
+          {!email && (
+            <div className="text-left">
+              <Label htmlFor="email" className="text-xs text-gray-500">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          )}
 
           {resent ? (
             <p className="text-sm font-medium text-green-600">
@@ -59,7 +85,7 @@ export default function VerifyEmailPage() {
               variant="outline"
               className="w-full"
               onClick={handleResend}
-              disabled={resending}
+              disabled={resending || !email}
             >
               {resending ? (
                 <>

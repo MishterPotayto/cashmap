@@ -50,7 +50,7 @@ function RegisterForm() {
       }
 
       // Do NOT auto sign in — require email verification first
-      router.push("/verify-email");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
