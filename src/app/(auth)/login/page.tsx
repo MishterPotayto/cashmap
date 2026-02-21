@@ -30,7 +30,15 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password");
+      // If credentials sign-in failed, attempt to resend verification and redirect
+      try {
+        await fetch("/api/auth/resend-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+      } catch {}
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
       setLoading(false);
     } else {
       router.push("/dashboard");
