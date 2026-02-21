@@ -193,6 +193,25 @@ export default function UploadPage() {
           </CardContent>
         </Card>
       )}
+
+      {step === "done" && result?.uploadId && (
+        <div className="flex items-center gap-3">
+          <Button
+            variant="destructive"
+            onClick={async () => {
+              try {
+                await fetch(`/api/upload/${result.uploadId}`, { method: "DELETE" });
+                setResult(null);
+                setStep("upload");
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            Delete this import
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

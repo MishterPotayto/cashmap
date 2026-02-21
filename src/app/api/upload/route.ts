@@ -97,5 +97,5 @@ export async function POST(req: Request) {
     data: { transactionCount: imported },
   });
 
-  return NextResponse.json({ imported, categorised });
+  return NextResponse.json({ imported, categorised, uploadId: upload.id });
 }

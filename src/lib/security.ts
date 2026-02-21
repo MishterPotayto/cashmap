@@ -1,6 +1,6 @@
 export function validatePasswordStrong(password: string, context?: { email?: string; name?: string }): string | null {
   const pw = password ?? "";
-  if (pw.length < 12) return "Password must be at least 12 characters long";
+if (pw.length < 8) return "Password must be at least 8 characters long";
   if (!/[A-Z]/.test(pw)) return "Password must contain an uppercase letter";
   if (!/[a-z]/.test(pw)) return "Password must contain a lowercase letter";
   if (!/[0-9]/.test(pw)) return "Password must contain a number";
