@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
-const from = process.env.RESEND_FROM_EMAIL ?? "noreply@cashmap.app";
+const from = process.env.RESEND_FROM_EMAIL ?? "noreply@updates.cashmapnz.com";
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function sendVerificationEmail({
