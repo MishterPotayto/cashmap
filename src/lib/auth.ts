@@ -63,34 +63,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        loginToken: { label: "Login Token", type: "text" },
       },
       async authorize(credentials) {
-        // One-time login via token (used after email verification)
-        if (credentials?.loginToken) {
-          const vt = await prisma.verificationToken.findUnique({
-            where: { token: credentials.loginToken as string },
-          });
-          if (!vt || vt.expires < new Date()) return null;
-          const user = await prisma.user.findUnique({ where: { email: vt.identifier } });
-          if (!user) return null;
-          // Consume token
-          await prisma.verificationToken.delete({
-            where: { identifier_token: { identifier: vt.identifier, token: vt.token } },
-          });
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            role: user.role,
-            organisationId: user.organisationId,
-            budgetPeriod: user.budgetPeriod,
-            onboardingCompleted: user.onboardingCompleted,
-          };
-        }
-
-        // Normal credentials login path
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
