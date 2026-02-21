@@ -21,7 +21,8 @@ export async function POST(req: Request) {
   }
 
   // Basic file validation
-  if ((file as any).size && (file as any).size > 5 * 1024 * 1024) {
+  const uploadedSize = (file as File & { size?: number }).size ?? 0;
+  if (uploadedSize > 5 * 1024 * 1024) {
     return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 413 });
   }
 
